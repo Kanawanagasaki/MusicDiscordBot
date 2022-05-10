@@ -29,68 +29,12 @@ export class MusicPlayer
     public Play(song:SongInfo)
     {
         if(!this._isConnected)
-        {
-            this._connection = joinVoiceChannel({
-                channelId: this.ChannelId,
-                guildId: this.GuildId,
-                adapterCreator: this._adapterCreator
-            });
-            this._player = createAudioPlayer();
-            this._connection.subscribe(this._player);
-
-            this._player.on("idle" as any, () =>
-            {
-                if(this._queue.length > 0)
-                {
-                    let queueSong = this._queue.shift();
-
-                    if(queueSong.Channel !== undefined)
-                    {
-                        const exampleEmbed = new MessageEmbed()
-                            .setColor('#0099ff')
-                            .setTitle(queueSong.Title)
-                            .setThumbnail(queueSong.Image)
-                            .addField('Length', 'Length of a song is ' + queueSong.Length)
-                            .addField('Queue', "There are " + this._queue.length + " songs in queue");
-                        queueSong.Channel.send({ embeds: [exampleEmbed] });
-                    }
-
-                    let stream = ytdl(queueSong.Link, { filter: 'audioonly' });
-                    this._player.play(createAudioResource(stream, { seek: 0, volume: 1 } as any));
-                    this._isPlaying = true;
-                }
-                else
-                {
-                    this._connection.destroy();
-                    this._isPlaying = false;
-                    this._isConnected = false;
-                }
-            });
-            this._player.on("error", error => console.log("ERROR:\n" + error));
-            this._player.on("debug", dbg => console.log("DEBUG:\n" + dbg));
-
-            this._isConnected = true;
-        }
+            this.Connect();
         
         if(this._isPlaying)
             this._queue.push(song);
         else
-        {
-            if(song.Channel !== undefined)
-            {
-                const exampleEmbed = new MessageEmbed()
-                    .setColor('#0099ff')
-                    .setTitle(song.Title)
-                    .setThumbnail(song.Image)
-                    .addField('Length', 'Length of a song is ' + song.Length)
-                    .addField('Queue', "There are " + this._queue.length + " songs in queue");
-                song.Channel.send({ embeds: [exampleEmbed] });
-            }
-
-            let stream = ytdl(song.Link, { filter: 'audioonly' });
-            this._player.play(createAudioResource(stream, { seek: 0, volume: 1 } as any));
-            this._isPlaying = true;
-        }
+            this.Start(song);
     }
 
     public Skip()
@@ -104,5 +48,53 @@ export class MusicPlayer
         this._queue = [];
         if(this._isConnected)
             this._player.stop();
+    }
+
+    private Connect()
+    {
+        this._connection = joinVoiceChannel({
+            channelId: this.ChannelId,
+            guildId: this.GuildId,
+            adapterCreator: this._adapterCreator
+        });
+        this._player = createAudioPlayer();
+        this._connection.subscribe(this._player);
+
+        this._player.on("idle" as any, () =>
+        {
+            if(this._queue.length > 0)
+            {
+                let queueSong = this._queue.shift();
+                this.Start(queueSong);
+            }
+            else
+            {
+                this._connection.destroy();
+                this._isPlaying = false;
+                this._isConnected = false;
+            }
+        });
+        this._player.on("error", error => console.log("ERROR:\n" + error));
+        this._player.on("debug", dbg => console.log("DEBUG:\n" + dbg));
+
+        this._isConnected = true;
+    }
+
+    private Start(song:SongInfo)
+    {
+        if(song.Channel !== undefined)
+        {
+            const exampleEmbed = new MessageEmbed()
+                .setColor('#0099ff')
+                .setTitle(song.Title)
+                .setThumbnail(song.Image)
+                .addField('Length', 'Length of a song is ' + song.Length)
+                .addField('Queue', "There are " + this._queue.length + " songs in queue");
+            song.Channel.send({ embeds: [exampleEmbed] });
+        }
+
+        let stream = ytdl(song.Link, { filter: 'audioonly' });
+        this._player.play(createAudioResource(stream, { seek: 0, volume: 1 } as any));
+        this._isPlaying = true;
     }
 }
