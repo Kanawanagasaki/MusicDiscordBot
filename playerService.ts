@@ -1,18 +1,17 @@
 import { MusicPlayer } from "./musicPlayer";
-import { SongInfo } from "./songInfo";
 
 export class PlayerService
 {
     private _players:MusicPlayer[] = [];
 
-    public Play(info:SongInfo)
+    public GetPlayer(guildId:string, channelId:string, adapterCreator:any)
     {
-        let player = this._players.find(p => p.GuildId == info.GuildId && p.ChannelId == info.ChannelId);
+        let player = this._players.find(p => p.GuildId == guildId && p.ChannelId == channelId);
         if(player === undefined)
         {
-            player = new MusicPlayer(info.GuildId, info.ChannelId, info.AdapterCreator);
+            player = new MusicPlayer(guildId, channelId, adapterCreator);
             this._players.push(player);
         }
-        player.Play(info.Link);
+        return player;
     }
 }

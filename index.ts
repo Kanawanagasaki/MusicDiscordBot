@@ -1,9 +1,8 @@
 import { Client, Intents } from "discord.js";
 import { PlayerService } from "./playerService";
-import { SongInfo } from "./songInfo";
-var { token } = require("conf.json");
+var { token } = require("./conf.json");
 
-const musicPlayer = new PlayerService();
+const musicService = new PlayerService();
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES] });
 
 client.once('ready', () => {
@@ -11,18 +10,30 @@ client.once('ready', () => {
 });
 
 client.on("messageCreate", (message) => {
-    if (message.content.startsWith("!play ")) {
-        const voiceChannel = message.member.voice.channel;
-        if (!voiceChannel) {
-            message.reply('Please be in a voice channel first!');
-            return;
-        }
-        let info = new SongInfo();
-        info.ChannelId = voiceChannel.id;
-        info.GuildId = message.guild.id;
-        info.AdapterCreator = message.guild.voiceAdapterCreator;
-        info.Link = message.content.substring(6);
-        musicPlayer.Play(info);
+    if (!message.content.startsWith("!")) return;
+
+    const voiceChannel = message.member.voice.channel;
+    if (!voiceChannel) {
+        message.reply('Please be in a voice channel first!');
+        return;
+    }
+
+    const player = musicService.GetPlayer(message.guild.id, voiceChannel.id, message.guild.voiceAdapterCreator);
+
+    let split = message.content.substring(1).split(' ');
+    let command = split[0];
+    let args = split.slice(1).join(" ");
+
+    switch (command) {
+        case "play":
+            player.Play(args);
+            break;
+        case "skip":
+            player.Skip();
+            break;
+        case "stop":
+            player.Stop();
+            break;
     }
 });
 

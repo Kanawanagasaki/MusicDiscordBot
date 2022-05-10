@@ -8,7 +8,6 @@ export class MusicPlayer
     private _adapterCreator:DiscordGatewayAdapterCreator;
     private _connection:VoiceConnection = null;
     private _player:AudioPlayer = null;
-    private _subscription:PlayerSubscription = null;
     private _isConnected:boolean = false;
     private _isPlaying:boolean = false;
 
@@ -31,7 +30,7 @@ export class MusicPlayer
                 adapterCreator: this._adapterCreator
             });
             this._player = createAudioPlayer();
-            this._subscription = this._connection.subscribe(this._player);
+            this._connection.subscribe(this._player);
 
             this._player.on("idle" as any, () =>
             {
@@ -48,8 +47,8 @@ export class MusicPlayer
                     this._isConnected = false;
                 }
             });
-            this._player.on("error", error => console.log(error));
-            this._player.on("debug", dbg => console.log(dbg));
+            this._player.on("error", error => console.log("ERROR:\n" + error));
+            this._player.on("debug", dbg => console.log("DEBUG:\n" + dbg));
 
             this._isConnected = true;
         }
@@ -62,5 +61,18 @@ export class MusicPlayer
             this._player.play(createAudioResource(stream, { seek: 0, volume: 1 } as any));
             this._isPlaying = true;
         }
+    }
+
+    public Skip()
+    {
+        if(this._isConnected)
+            this._player.stop();
+    }
+
+    public Stop()
+    {
+        this._queue = [];
+        if(this._isConnected)
+            this._player.stop();
     }
 }
