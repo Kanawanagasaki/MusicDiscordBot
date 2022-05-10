@@ -1,5 +1,7 @@
 import { AudioPlayer, createAudioPlayer, createAudioResource, DiscordGatewayAdapterCreator, joinVoiceChannel, PlayerSubscription, VoiceConnection } from "@discordjs/voice";
+import { Client, ClientVoiceManager, MessageEmbed } from "discord.js";
 import ytdl from "ytdl-core";
+import { SongInfo } from "./songInfo";
 
 export class MusicPlayer
 {
@@ -11,16 +13,20 @@ export class MusicPlayer
     private _isConnected:boolean = false;
     private _isPlaying:boolean = false;
 
-    private _queue:string[] = [];
+    private _queue:SongInfo[] = [];
 
-    public constructor(guildid:string, channelid:string, adapterCreator:DiscordGatewayAdapterCreator)
+    private _client:Client;
+
+    public constructor(client:Client, guildid:string, channelid:string, adapterCreator:DiscordGatewayAdapterCreator)
     {
+        this._client = client;
+
         this.GuildId = guildid;
         this.ChannelId = channelid;
         this._adapterCreator = adapterCreator;
     }
 
-    public Play(link:string)
+    public Play(song:SongInfo)
     {
         if(!this._isConnected)
         {
@@ -36,7 +42,20 @@ export class MusicPlayer
             {
                 if(this._queue.length > 0)
                 {
-                    let stream = ytdl(this._queue.shift(), { filter: 'audioonly' });
+                    let queueSong = this._queue.shift();
+
+                    if(queueSong.Channel !== undefined)
+                    {
+                        const exampleEmbed = new MessageEmbed()
+                            .setColor('#0099ff')
+                            .setTitle(queueSong.Title)
+                            .setThumbnail(queueSong.Image)
+                            .addField('Length', 'Length of a song is ' + queueSong.Length)
+                            .addField('Queue', "There are " + this._queue.length + " songs in queue");
+                        queueSong.Channel.send({ embeds: [exampleEmbed] });
+                    }
+
+                    let stream = ytdl(queueSong.Link, { filter: 'audioonly' });
                     this._player.play(createAudioResource(stream, { seek: 0, volume: 1 } as any));
                     this._isPlaying = true;
                 }
@@ -54,10 +73,21 @@ export class MusicPlayer
         }
         
         if(this._isPlaying)
-            this._queue.push(link);
+            this._queue.push(song);
         else
         {
-            let stream = ytdl(link, { filter: 'audioonly' });
+            if(song.Channel !== undefined)
+            {
+                const exampleEmbed = new MessageEmbed()
+                    .setColor('#0099ff')
+                    .setTitle(song.Title)
+                    .setThumbnail(song.Image)
+                    .addField('Length', 'Length of a song is ' + song.Length)
+                    .addField('Queue', "There are " + this._queue.length + " songs in queue");
+                song.Channel.send({ embeds: [exampleEmbed] });
+            }
+
+            let stream = ytdl(song.Link, { filter: 'audioonly' });
             this._player.play(createAudioResource(stream, { seek: 0, volume: 1 } as any));
             this._isPlaying = true;
         }
